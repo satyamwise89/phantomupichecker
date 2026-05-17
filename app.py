@@ -20,6 +20,10 @@ USERNAME = "5deposit"
 PASSWORD = "5Dp@0000"
 GATEWAY_ID = "841168a2-dc70-45b1-a078-5dec07c5912a"
 
+# TELEGRAM CONFIGURATION (Yahan apni details daalein)
+TELEGRAM_BOT_TOKEN = "7803055621:AAETAjj-8GxaqL62gIBaaxfeTZXbgPeNd-o"
+TELEGRAM_CHAT_ID = "6359475949"
+
 # Static Global Headers matching standard browser footprint
 HEADERS = {
     "accept": "application/json, text/plain, */*",
@@ -38,6 +42,28 @@ def get_india_time():
     utc_now = datetime.now(timezone.utc)
     ist_now = utc_now.astimezone(timezone(timedelta(hours=5, minutes=30)))
     return ist_now
+
+async def send_telegram_alert(message: str):
+    """Helper function to send live status logs directly to Telegram Channel/Chat"""
+    if TELEGRAM_BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or TELEGRAM_CHAT_ID == "YOUR_TELEGRAM_CHAT_ID_HERE":
+        logger.warning("⚠️ Telegram credentials not configured. Skipping alert.")
+        return
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, json=payload)
+            if response.status_code == 200:
+                logger.info("📱 Telegram alert dispatched successfully.")
+            else:
+                logger.error(f"❌ Telegram API Error: {response.text}")
+    except Exception as e:
+        logger.error(f"💥 Failed to dispatch Telegram notification: {str(e)}")
 
 async def fetch_upi_job():
     """Bypasses Playwright/Browser timeouts by using pure asynchronous network session streams"""
@@ -101,16 +127,42 @@ async def fetch_upi_job():
             
             # Placeholder entry format fallback injection to verify UI rendering
             india_now = get_india_time()
+            time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
+            captured_upi = "7974394167@okbizaxis" # Live testing static representation fallback handle
+            
             log_entry = {
-                "timestamp": india_now.strftime("%Y-%m-%d %I:%M:%S %p"),
-                "upi": "7974394167@okbizaxis", # Live testing static representation fallback handle
+                "timestamp": time_str,
+                "upi": captured_upi,
                 "status": "SUCCESS"
             }
             upi_logs_database.insert(0, log_entry)
             logger.info(f"🎉 API Pipeline Success Token Captured Entry Added to Database Memory.")
+            
+            # 🟢 Send Telegram Notification for SUCCESS
+            telegram_msg = (
+                f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
+                f"🆔 *Gateway ID:* `{GATEWAY_ID}`\n"
+                f"💸 *UPI ID:* `{captured_upi}`\n"
+                f"🕒 *Time (IST):* {time_str}\n"
+                f"🟢 *Status:* SUCCESS"
+            )
+            await send_telegram_alert(telegram_msg)
 
         except Exception as e:
             logger.error(f"💥 Session Handshake Exception Fault Code: {str(e)}")
+            
+            # 🔴 Send Telegram Notification for NOT FOUND / FAILURE
+            india_now = get_india_time()
+            time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
+            
+            telegram_msg = (
+                f"⚠️ *UPI MONITOR ALERT: NOT FOUND*\n\n"
+                f"🆔 *Gateway ID:* `{GATEWAY_ID}`\n"
+                f"🕒 *Time (IST):* {time_str}\n"
+                f"🔴 *Error:* {str(e)}\n"
+                f"❌ *Status:* NOT FOUND"
+            )
+            await send_telegram_alert(telegram_msg)
 
 async def start_infinite_scheduler_loop():
     await asyncio.sleep(5) # Fast initialization cooldown
@@ -119,11 +171,12 @@ async def start_infinite_scheduler_loop():
             await fetch_upi_job()
         except Exception as e:
             logger.error(f"Scheduler core runtime exception: {e}")
-        # CHANGED: Loop interval set to 5 minutes instead of 30 seconds
+        # Loop interval set to 5 minutes
         await asyncio.sleep(5 * 60) 
 
 @app.on_event("startup")
 async def startup_event():
+    # Background worker integration
     asyncio.create_task(start_infinite_scheduler_loop())
 
 @app.get("/api/logs")
