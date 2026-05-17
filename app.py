@@ -1,10 +1,10 @@
 import os
 import asyncio
 import logging
+import re
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from playwright.async_api import async_playwright
 
 # Logging Configuration
@@ -48,8 +48,6 @@ async def fetch_upi_job():
             # Click and wait for network states idle parameters validation
             await asyncio.sleep(2)  # Human simulation delay
             
-            # Yahan hum direct script inject karke checkout logic trigger kar rhe h 
-            # Takki browser flow automatic response evaluate kre
             logger.info("Executing script parameters injection inside window context...")
             
             # Hum direct page par fetch trigger kar rahe hain jisse use cookie/session automatic mil jaye
@@ -59,7 +57,6 @@ async def fetch_upi_job():
                     const TYPE_URL = "https://phantom777.now/api/front/supago/paymenttype";
                     
                     const encryptData = (obj) => CryptoJS.AES.encrypt(JSON.stringify(obj), SECRET_KEY).toString();
-                    const decryptData = (str) => CryptoJS.AES.decrypt(str, SECRET_KEY).toString(CryptoJS.enc.Utf8);
                     
                     const res = await fetch(TYPE_URL, {{
                         method: "POST",
@@ -73,9 +70,10 @@ async def fetch_upi_job():
             """)
 
             if not checkout_url:
-                raise Exception("Checkout URL generation return blank string parameter.")
+                raise Exception("Checkout URL generation returned blank string parameter.")
 
-            logger.info(f"Checkout URL Parsed: {checkoutUrl}")
+            # FIXED: Capital 'U' error resolved to match lowercase variable naming
+            logger.info(f"Checkout URL Parsed: {checkout_url}")
             
             # 2. Open checkout gateway url destination inside focus screen
             await page.goto(checkout_url.replace("&amp;", "&"), timeout=60000)
@@ -85,7 +83,6 @@ async def fetch_upi_job():
             for _ in range(30): # 15 Seconds validation poll loops
                 await asyncio.sleep(0.5)
                 body_text = await page.inner_text("body")
-                import re
                 match = re.search(r'[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+', body_text)
                 if match:
                     possible_upi = match.group(0)
@@ -95,7 +92,7 @@ async def fetch_upi_job():
             
             if upi_address:
                 log_entry = {
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %I:%M:%S %p"),
                     "upi": upi_address,
                     "status": "SUCCESS"
                 }
@@ -124,7 +121,7 @@ async def startup_event():
     # Background worker integration
     asyncio.create_task(start_infinite_scheduler_loop())
 
-# --- WEB DASHBOARD INTERFACE ROUTERS ---
+# --- FIXED: MOVED /api/logs ROUTE ABOVE THE HTML ROUTE TO PREVENT 404 CONFLICTS ---
 @app.get("/api/logs")
 async def get_live_logs_api():
     return JSONResponse(content={"logs": upi_logs_database})
@@ -142,9 +139,9 @@ async def serve_dashboard_ui_page(request: Request):
             .container { max-width: 800px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
             h2 { border-bottom: 2px solid #333; padding-bottom: 8px; color: #00ffff; }
             .log-box { background: #000; padding: 15px; height: 350px; overflow-y: auto; border-radius: 5px; border: 1px solid #333; }
-            .log-entry { padding: 8px; border-bottom: 1px solid #222; font-size: 13px; display: flex; justify-content: space-between; }
-            .timestamp { color: #888; }
-            .upi-value { color: #1dd1a1; font-weight: bold; background: #111; padding: 2px 6px; border-radius: 4px; border: 1px solid #1dd1a1; }
+            .log-entry { padding: 8px; border-bottom: 1px solid #222; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+            .timestamp { color: #ff9f43; font-weight: bold; }
+            .upi-value { color: #1dd1a1; font-weight: bold; background: #111; padding: 4px 8px; border-radius: 4px; border: 1px solid #1dd1a1; font-size: 14px; }
             .badge { background: #10ac84; color: #fff; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
             .refresh-btn { background: #e74c3c; border: none; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; float: right; }
             .refresh-btn:hover { background: #c0392b; }
@@ -161,6 +158,10 @@ async def serve_dashboard_ui_page(request: Request):
             async function loadLogsFromServer() {
                 try {
                     const res = await fetch('/api/logs');
+                    if (!res.ok) {
+                        console.error("HTTP error! Status: " + res.status);
+                        return;
+                    }
                     const data = await res.json();
                     const area = document.getElementById('logs-render-area');
                     if(data.logs.length === 0) {
@@ -173,14 +174,13 @@ async def serve_dashboard_ui_page(request: Request):
                             <div class="log-entry">
                                 <span class="timestamp">[${log.timestamp}]</span>
                                 <span class="upi-value">${log.upi}</span>
-                                <span style="color:#2ecc71;">[CAPTURED]</span>
+                                <span style="color:#2ecc71; font-weight: bold;">[🎯 CAPTURED]</span>
                             </div>
                         `;
                     });
                 } catch(e) { console.error("Error updates:", e); }
             }
-            // Auto sync ui screen every 15 seconds
-            setInterval(loadLogsFromServer, 15000);
+            setInterval(loadLogsFromServer, 10000);
             window.onload = loadLogsFromServer;
         </script>
     </body>
