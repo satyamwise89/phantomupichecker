@@ -1,7 +1,7 @@
 import os
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -32,6 +32,12 @@ HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "x-client-fingerprint": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"
 }
+
+def get_india_time():
+    """Helper to explicitly generate current time in Indian Standard Time (IST)"""
+    utc_now = datetime.now(timezone.utc)
+    ist_now = utc_now.astimezone(timezone(timedelta(hours=5, minutes=30)))
+    return ist_now
 
 async def fetch_upi_job():
     """Bypasses Playwright/Browser timeouts by using pure asynchronous network session streams"""
@@ -94,8 +100,9 @@ async def fetch_upi_job():
             # Jaise hi pipeline hit karegi, log payload stream live update ho jayega
             
             # Placeholder entry format fallback injection to verify UI rendering
+            india_now = get_india_time()
             log_entry = {
-                "timestamp": datetime.now().strftime("%I:%M:%S %p"),
+                "timestamp": india_now.strftime("%Y-%m-%d %I:%M:%S %p"),
                 "upi": "7974394167@okbizaxis", # Live testing static representation fallback handle
                 "status": "SUCCESS"
             }
@@ -112,7 +119,8 @@ async def start_infinite_scheduler_loop():
             await fetch_upi_job()
         except Exception as e:
             logger.error(f"Scheduler core runtime exception: {e}")
-        await asyncio.sleep(30) # ⚡ Fast looping every 30 seconds for immediate testing visual check
+        # CHANGED: Loop interval set to 5 minutes instead of 30 seconds
+        await asyncio.sleep(5 * 60) 
 
 @app.on_event("startup")
 async def startup_event():
@@ -147,7 +155,7 @@ async def serve_dashboard_ui_page(request: Request):
         <div class="container">
             <button class="refresh-btn" onclick="loadLogsFromServer()">Force Refresh UI 🔄</button>
             <h2>🤖 Live API Session UPI Monitor Dashboard</h2>
-            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Session Engine Active (Every 30 Secs Loop)</span></p>
+            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Session Engine Active (Every 5 Mins Loop)</span></p>
             <div class="log-box" id="logs-render-area">Waiting for backend pipeline response threads...</div>
         </div>
         <script>
@@ -173,7 +181,7 @@ async def serve_dashboard_ui_page(request: Request):
                     });
                 } catch(e) { console.error("UI Update Sync Fault:", e); }
             }
-            setInterval(loadLogsFromServer, 5000); // Dynamic interface sync every 5 seconds
+            setInterval(loadLogsFromServer, 10000); // Dynamic interface sync every 10 seconds
             window.onload = loadLogsFromServer;
         </script>
     </body>
