@@ -20,9 +20,9 @@ USERNAME = "5deposit"
 PASSWORD = "5Dp@0000"
 GATEWAY_ID = "841168a2-dc70-45b1-a078-5dec07c5912a"
 
-# TELEGRAM CONFIGURATION (Yahan apni details daalein)
-TELEGRAM_BOT_TOKEN = "7803055621:AAETAjj-8GxaqL62gIBaaxfeTZXbgPeNd-o"
-TELEGRAM_CHAT_ID = "6359475949"
+# CHANGED: Reading credentials safely from Render Environment Variables
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 # Static Global Headers matching standard browser footprint
 HEADERS = {
@@ -45,8 +45,8 @@ def get_india_time():
 
 async def send_telegram_alert(message: str):
     """Helper function to send live status logs directly to Telegram Channel/Chat"""
-    if TELEGRAM_BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or TELEGRAM_CHAT_ID == "YOUR_TELEGRAM_CHAT_ID_HERE":
-        logger.warning("⚠️ Telegram credentials not configured. Skipping alert.")
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        logger.warning("⚠️ Telegram Environment Variables not configured on dashboard. Skipping alert.")
         return
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
