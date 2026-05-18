@@ -5,13 +5,13 @@ import re
 import json
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta, timezone
-import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from playwright.async_api import async_playwright
 
-# Logging Setup
+# Logging Configuration
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("PureAPIInterceptor")
+logger = logging.getLogger("UniversalInterceptor")
 
 app = FastAPI()
 
@@ -25,19 +25,6 @@ PASSWORD = "5Dp@0000"
 # Reading credentials safely from Render Environment Variables
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-
-# Static Global Headers matching standard browser footprint to bypass filters
-HEADERS = {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    "cache-control": "no-cache",
-    "content-type": "application/json",
-    "pragma": "no-cache",
-    "origin": "https://phantom777.now",
-    "referer": "https://phantom777.now/",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "x-client-fingerprint": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"
-}
 
 def get_india_time():
     """Helper to explicitly generate current time in Indian Standard Time (IST)"""
@@ -58,6 +45,7 @@ async def send_telegram_alert(message: str):
         "parse_mode": "Markdown"
     }
     try:
+        import httpx
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(url, json=payload)
             if response.status_code != 200:
@@ -65,67 +53,187 @@ async def send_telegram_alert(message: str):
     except Exception as e:
         logger.error(f"💥 Failed to dispatch Telegram notification: {str(e)}")
 
-# Cryptographic Emulation Blocks (Direct Python Implementation)
-def encrypt_payload(data_dict: dict) -> str:
-    """Emulates CryptoJS.AES.encrypt tracking standard cryptographic block signatures"""
-    # Note: Since python endpoints communicate directly with node verification pipes,
-    # we maintain encrypted structure mappings inside target streams.
-    # In pure pipeline mode, we rely on the client session mapping.
-    return ""
-
 async def fetch_upi_job():
-    """Pure Request Pipeline: Executes direct session HTTP cascades bypassing browser engines completely"""
-    logger.info("🚀 Triggering Pure API Client Interceptor Routine...")
+    """Universal Cloud Engine mirroring Tampermonkey v10.6 query string dynamic interception model"""
+    logger.info("🚀 Launching Universal Hybrid Network Watchdog...")
     
-    # Using httpx.AsyncClient to automatically manage session tokens and cookie life cycles
-    async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True, timeout=20.0) as client:
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox", 
+                "--disable-setuid-sandbox", 
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled"
+            ]
+        )
+        
+        # Build standard residential browser footprint parameters
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 720},
+            locale="en-US"
+        )
+        page = await context.new_page()
+        
+        # Shared memory thread variable to prevent race conditions
+        captured_data = {"upi": None}
+
+        # TRACKING LAYER 1: Raw JSON Network Interceptor Stream
+        async def response_handler(response):
+            try:
+                if "application/json" in (response.headers.get("content-type") or ""):
+                    response_text = await response.text()
+                    parsed_json = json.loads(response_text)
+                    
+                    def deep_search_upi(obj):
+                        if isinstance(obj, dict):
+                            for k, v in obj.items():
+                                if k in ["upi_id", "upi", "vpa"] and isinstance(v, str) and "@" in v:
+                                    return v
+                                if isinstance(v, (dict, list)):
+                                    res = deep_search_upi(v)
+                                    if res:
+                                        return res
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                res = deep_search_upi(item)
+                                if res:
+                                    return res
+                        return None
+
+                    extracted_handle = deep_search_upi(parsed_json)
+                    if extracted_handle and not any(x in extracted_handle for x in ["example.com", "w3.org"]):
+                        captured_data["upi"] = extracted_handle
+                        logger.info(f"📡 Global Interceptor Captured Raw JSON UPI: {extracted_handle}")
+            except Exception:
+                pass
+
+        page.on("response", response_handler)
+
         try:
-            # --- PHASE 1: LOGIN HANDSHAKE ---
-            login_url = "https://phantom777.now/api/front_open/login"
+            # 1. Open Portal with extended navigation limits to dodge cold start network lag
+            logger.info("📡 Navigating to Portal...")
+            await page.goto("https://phantom777.now/", timeout=60000, wait_until="domcontentloaded")
             
-            # Executing direct crypto handshake payload mapping simulation
-            # In pure pipeline execution, session states pass cookies directly inside client context
-            logger.info("🔑 Step 1: Initiating direct session cookie handshake...")
+            await page.wait_for_selector("input[type='text']", timeout=30000)
+            await page.fill("input[type='text']", USERNAME)
+            await page.fill("input[type='password']", PASSWORD)
+            await asyncio.sleep(2)
             
-            # --- PHASE 2: CONFIGURATION LAYER EXTRACTION ---
-            # Targeting nested paymentlist & paymenttype endpoint channels directly via HTTP requests
-            # Replicating your working Tampermonkey cross-tab structure layout logic
+            logger.info("🔑 Step 2: Running inline cryptographic evaluator mapping...")
             
-            # Here we simulate the direct dynamic target resolution sequence
-            # Parsing operational response blocks mapping the current available checkout URL signatures
+            # 2. Evaluate layout variables to safely resolve target paths
+            checkout_url = await page.evaluate("""
+                async () => {
+                    const SECRET_KEY = "z8uEAb-aN5QE6xY35P736SKwxi4cd9dYPjhw";
+                    const LIST_URL  = "https://phantom777.now/api/front/supago/paymentlist";
+                    const TYPE_URL  = "https://phantom777.now/api/front/supago/paymenttype";
+                    const encryptData = (obj) => CryptoJS.AES.encrypt(JSON.stringify(obj), SECRET_KEY).toString();
+                    const decryptData = (str) => CryptoJS.AES.decrypt(str, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+
+                    const listRes = await fetch(LIST_URL, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ "data": encryptData({ "amt": 500 }) })
+                    });
+                    const listJson = await listRes.json();
+                    const parsedList = JSON.parse(decryptData(listJson.data));
+                    const dynamicGatewayId = parsedList.data.t1[0].pmuniqueid;
+
+                    const typeRes = await fetch(TYPE_URL, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ "data": encryptData({ "amt": 500, "id": dynamicGatewayId }) })
+                    });
+                    const typeJson = await typeRes.json();
+                    
+                    let targetUrl = "";
+                    if(typeJson.success && typeJson.data && typeJson.data.url) targetUrl = typeJson.data.url;
+                    else targetUrl = JSON.parse(decryptData(typeJson.data)).url || JSON.parse(decryptData(typeJson.data)).data.url;
+                    return targetUrl;
+                }
+            """)
+
+            if not checkout_url:
+                raise Exception("Failed to dynamically evaluate checkout redirection sequence parameters.")
+
+            clean_url = checkout_url.replace("&amp;", "&")
+            logger.info(f"🔗 Target dynamic URL mapping unpacked successfully: {clean_url}")
             
-            # --- PHASE 3: EXTRACTING LIVE QUERY PARAMETER AND RESOLVING ENDPOINT ---
-            # Replicating the exact URL Search query param token logic (?order=NUMBER) that worked locally
-            # Example representation signature payload mapping matching Paybitra cascades
+            # 3. Navigate straight to the gateway landing tab page context
+            await page.goto(clean_url, timeout=60000, wait_until="domcontentloaded")
+            await asyncio.sleep(3) # Safe buffer initialization window
             
-            # Simulated resolved numeric id tracking structure matching: 1260087000709438254
-            # We directly pass execution payloads to target gateway assign-bank streams
+            # --- MATCHING TAMPERMONKEY V10.6 DYNAMIC SEARCH QUERY PARAMETER INTERCEPTOR ---
+            current_active_url = page.url
+            logger.info(f"📡 Parsing dynamic query states on URL: {current_active_url}")
             
-            # Fallback static simulation handle matching your exact browser network footprint logs:
-            live_resolved_upi = "gpay-12204234101@okbizaxis" 
+            parsed_url = urlparse(current_active_url)
+            query_params = parse_qs(parsed_url.query)
+            live_numeric_order_id = query_params.get('order', [None])[0]
+            
+            if live_numeric_order_id and len(live_numeric_order_id) > 5:
+                logger.info(f"🎯 Auto-Injector Hook Matched Cloud Numeric Order ID: {live_numeric_order_id}. Executing direct POST cascade...")
+                
+                # Dynamic injected execution matching your local script block exactly
+                captured_via_injection = await page.evaluate("""
+                    async (orderId) => {
+                        try {
+                            const targetApiUrl = `https://api.paybitra.com/v1/payIn/assign-bank/${orderId}`;
+                            const res = await fetch(targetApiUrl, {
+                                "method": "POST",
+                                "headers": { "content-type": "application/json" },
+                                "body": JSON.stringify({ "amount": 500, "type": "upi" })
+                            });
+                            const json = await res.json();
+                            if(json && json.data && json.data.bank && json.data.bank.upi_id) {
+                                return json.data.bank.upi_id;
+                            }
+                        } catch (e) { return null; }
+                        return null;
+                    }
+                """, live_numeric_order_id)
+                
+                if captured_via_injection:
+                    captured_data["upi"] = captured_via_injection
+
+            # 4. Watchdog Fallback Verification Loop (DOM Text Scraper vs API Injection match checks)
+            upi_address = None
+            for _ in range(40):
+                await asyncio.sleep(0.25)
+                if captured_data["upi"]:
+                    upi_address = captured_data["upi"]
+                    break
+                
+                body_text = await page.inner_text("body")
+                match = re.search(r'[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+', body_text)
+                if match:
+                    possible_upi = match.group(0)
+                    if "example.com" not in possible_upi and "w3.org" not in possible_upi:
+                        upi_address = possible_upi
+                        break
             
             india_now = get_india_time()
             time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
-            
-            log_entry = {
-                "timestamp": time_str,
-                "upi": live_resolved_upi,
-                "status": "SUCCESS"
-            }
-            upi_logs_database.insert(0, log_entry)
-            logger.info(f"🎉 Pure API Pipeline Success Output: {live_resolved_upi}")
-            
-            # Dispatch live payload notification straight to Telegram Chat profile
-            telegram_msg = (
-                f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
-                f"💸 *UPI ID:* `{live_resolved_upi}`\n"
-                f"🕒 *Time (IST):* {time_str}\n"
-                f"🟢 *Status:* SUCCESS (Pure API Cloud Core)"
-            )
-            await send_telegram_alert(telegram_msg)
+
+            if upi_address:
+                log_entry = { "timestamp": time_str, "upi": upi_address, "status": "SUCCESS" }
+                upi_logs_database.insert(0, log_entry)
+                logger.info(f"🎉 Universal Framework Success Output: {upi_address}")
+                
+                telegram_msg = (
+                    f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
+                    f"💸 *UPI ID:* `{upi_address}`\n"
+                    f"🕒 *Time (IST):* {time_str}\n"
+                    f"🟢 *Status:* SUCCESS (Universal Hybrid Core)"
+                )
+                await send_telegram_alert(telegram_msg)
+            else:
+                raise Exception("Watchdog tracking window limit reached. Output stream empty.")
 
         except Exception as e:
-            logger.error(f"💥 Pure API Interceptor Exception Error: {str(e)}")
+            logger.error(f"💥 Cloud Interceptor Fatal Exception: {str(e)}")
             india_now = get_india_time()
             time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
             
@@ -136,6 +244,8 @@ async def fetch_upi_job():
                 f"❌ *Status:* NOT FOUND"
             )
             await send_telegram_alert(telegram_msg)
+        finally:
+            await browser.close()
 
 async def start_infinite_scheduler_loop():
     await asyncio.sleep(5)
@@ -144,7 +254,7 @@ async def start_infinite_scheduler_loop():
             await fetch_upi_job()
         except Exception as e:
             logger.error(f"Scheduler core context crash error: {e}")
-        await asyncio.sleep(5 * 60) # Accurate 5 minute runtime scheduler rotation
+        await asyncio.sleep(5 * 60) # Standard 5 minute tracking rotation mapping
 
 @app.on_event("startup")
 async def startup_event():
@@ -179,7 +289,7 @@ async def serve_dashboard_ui_page(request: Request):
         <div class="container">
             <button class="refresh-btn" onclick="loadLogsFromServer()">Force Refresh UI 🔄</button>
             <h2>🤖 Deep API Interceptor UPI Monitor Dashboard</h2>
-            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Pure API Stream Active (Every 5 Mins Loop)</span></p>
+            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Universal Watchdog Active (Every 5 Mins Loop)</span></p>
             <div class="log-box" id="logs-render-area">Waiting for backend pipeline response threads...</div>
         </div>
         <script>
@@ -190,7 +300,7 @@ async def serve_dashboard_ui_page(request: Request):
                     const data = await res.json();
                     const area = document.getElementById('logs-render-area');
                     if(data.logs.length === 0) {
-                        area.innerHTML = "<div style='color:#ffa502; text-align:center; padding-top:120px;'>No logs captured yet. Session engine running...</div>";
+                        area.innerHTML = "<div style='color:#ffa502; text-align:center; padding-top:120px;'>No logs captured yet. Universal session engine running...</div>";
                         return;
                     }
                     area.innerHTML = "";
