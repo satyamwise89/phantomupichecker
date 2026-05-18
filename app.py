@@ -72,7 +72,6 @@ async def fetch_upi_job():
             
             # PHASE 3: FETCH UPI
             simulated_live_id = "126" + str(int(asyncio.get_event_loop().time() * 1000))[:16]
-            # FIXED: Removed the accidental '$' javascript leftover symbol from endpoint URL string
             target_paybitra_endpoint = f"https://api.paybitra.com/v1/payIn/assign-bank/{simulated_live_id}"
             
             paybitra_payload = {"amount": 500, "type": "upi"}
@@ -164,50 +163,54 @@ async def get_live_logs_api():
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard_ui_page(request: Request):
     status_text = "Active (Webhook Mode)" if IS_MONITOR_ACTIVE else "Stopped / Idle"
-    html_content = f"""
+    
+    # FIXED: String formatting issue resolved by replacing f-string with standard multiline string + .replace()
+    html_content = """
     <!DOCTYPE html>
     <html>
     <head>
         <title>🤖 Webhook Optimized Interceptor</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body {{ font-family: 'Courier New', monospace; background-color: #121212; color: #ffffff; padding: 20px; }}
-            .container {{ max-width: 800px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #34495e; }}
-            h2 {{ border-bottom: 2px solid #333; padding-bottom: 8px; color: #00ffff; }}
-            .badge {{ background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 20px; font-size: 11px; }}
-            .log-box {{ background: #000; padding: 15px; height: 250px; overflow-y: auto; border-radius: 5px; margin-top: 15px; font-size: 13px; }}
-            .log-entry {{ padding: 6px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }}
-            .timestamp {{ color: #ff9f43; }}
-            .upi-value {{ color: #1dd1a1; font-weight: bold; }}
+            body { font-family: 'Courier New', monospace; background-color: #121212; color: #ffffff; padding: 20px; }
+            .container { max-width: 800px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #34495e; }
+            h2 { border-bottom: 2px solid #333; padding-bottom: 8px; color: #00ffff; }
+            .badge { background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+            .log-box { background: #000; padding: 15px; height: 250px; overflow-y: auto; border-radius: 5px; margin-top: 15px; font-size: 13px; }
+            .log-entry { padding: 6px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }
+            .timestamp { color: #ff9f43; }
+            .upi-value { color: #1dd1a1; font-weight: bold; }
         </style>
     </head>
     <body>
         <div class="container">
             <h2>🤖 Webhook Optimized Cloud Dashboard</h2>
-            <p style="font-size:12px; color:#aaa;">Engine Status: <span class="badge">{status_text}</span></p>
+            <p style="font-size:12px; color:#aaa;">Engine Status: <span class="badge">__STATUS_TEXT__</span></p>
             <p>Bot will automatically trigger this server whenever you press /start or /stop in Telegram!</p>
             <div class="log-box" id="logs-area">Loading live streaming logs thread...</div>
         </div>
         <script>
-            async function refreshLogs() {{
-                try {{
+            async function refreshLogs() {
+                try {
                     let res = await fetch('/api/logs');
                     let data = await res.json();
                     let area = document.getElementById('logs-area');
-                    if(data.logs.length === 0) {{
+                    if(data.logs.length === 0) {
                         area.innerHTML = "<div style='color:#aaa; text-align:center; padding-top:100px;'>No logs captured yet. Press /start in Telegram.</div>";
                         return;
-                    }}
+                    }
                     area.innerHTML = "";
-                    data.logs.forEach(log => {{
-                        area.innerHTML += `<div class="log-entry"><span class="timestamp">[${{log.timestamp}}]</span><span class="upi-value">${{log.upi}}</span></div>`;
-                    }});
-                } catch(e) {{}}
-            }}
+                    data.logs.forEach(log => {
+                        area.innerHTML += `<div class="log-entry"><span class="timestamp">[${log.timestamp}]</span><span class="upi-value">${log.upi}</span></div>`;
+                    });
+                } catch(e) {}
+            }
             setInterval(refreshLogs, 5000);
             window.onload = refreshLogs;
         </script>
     </body>
     </html>
     """
-    return HTMLResponse(content=html_content, status_code=200)
+    
+    final_html = html_content.replace("__STATUS_TEXT__", status_text)
+    return HTMLResponse(content=final_html, status_code=200)
