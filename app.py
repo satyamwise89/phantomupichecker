@@ -12,7 +12,7 @@ import httpx
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("PaybitraBridgeInterceptor")
+logger = logging.getLogger("PaybitraChainInterceptor")
 
 app = FastAPI()
 
@@ -28,7 +28,6 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://phantom-upi-hunter.onrender.com")
 
-# ⚡ EXACT MATCH: Syncing browser footprint headers as per your exact local fetch dump
 TARGET_HEADERS = {
     "accept": "*/*",
     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
@@ -60,57 +59,90 @@ async def send_telegram_alert(message: str):
         logger.error(f"💥 Telegram dispatch error: {e}")
 
 def get_crypto_emulated_payload(raw_dict: dict) -> dict:
+    """Emulates Salted base64 wrapper structural mappings for node servers"""
     dummy_salt = "1234567890abcdef"
     fake_cipher_bytes = base64.b64encode(json.dumps(raw_dict).encode('utf-8')).decode('utf-8')
     return {"data": f"U2FsdGVkX1{dummy_salt}{fake_cipher_bytes}"}
 
 async def fetch_upi_job():
-    logger.info("🚀 Executing Paybitra Final Precise Handshake Routine...")
+    logger.info("🚀 Executing Paybitra Chain Dynamic Core Extraction...")
     time_str = get_india_time().strftime("%Y-%m-%d %I:%M:%S %p")
     
-    # Utilizing persistent cookies block structure inside client session context
     async with httpx.AsyncClient(headers=TARGET_HEADERS, follow_redirects=True, timeout=30.0) as client:
         try:
-            # PHASE 1: LOGIN
+            # PHASE 1: LOGIN HANDSHAKE
+            logger.info("🔑 Phase 1: Authentication...")
             login_url = "https://phantom777.now/api/front_open/login"
             login_payload = {"username": USERNAME, "password": PASSWORD, "passwordVisible": False, "recaptcha": "", "visitorId": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"}
             await client.post(login_url, json=get_crypto_emulated_payload(login_payload))
 
-            # PHASE 2: CONFIGURATION DATA MAPPING
+            # PHASE 2: PAYMENT LIST EXTRACTION
+            logger.info("📡 Phase 2: Fetching payment list data stream...")
             list_url = "https://phantom777.now/api/front/supago/paymentlist"
-            await client.post(list_url, json=get_crypto_emulated_payload({"amt": 500}))
+            list_res = await client.post(list_url, json=get_crypto_emulated_payload({"amt": 500}))
             
+            # Extract dynamic gateway identifier directly from internal packet mappings
+            dynamic_gateway_id = "2dd446ed" 
+            try:
+                list_data = list_res.json()
+                # Server internally fallbacks to plain mappings if token string layout settles raw
+                if list_data and "data" in list_data:
+                    # Parse dynamic strings using data parameters mapping
+                    raw_data_str = list_data.get("data", "")
+                    if isinstance(raw_data_str, dict):
+                        dynamic_gateway_id = raw_data_str.get("t1", [{}])[0].get("pmuniqueid", "2dd446ed")
+            except Exception:
+                pass
+            
+            logger.info(f"🎯 Dynamic Gateway ID Resolved: {dynamic_gateway_id}")
+
             # PHASE 3: FETCH EXTRACTED CHECKOUT ROUTE LINK
+            logger.info("🔗 Phase 3: Resolving true transaction parameters...")
             type_url = "https://phantom777.now/api/front/supago/paymenttype"
-            type_payload = {"amt": 500, "id": "2dd446ed"} 
+            type_payload = {"amt": 500, "id": dynamic_gateway_id} 
             type_res = await client.post(type_url, json=get_crypto_emulated_payload(type_payload))
             
             checkout_url = ""
             try:
                 type_json = type_res.json()
-                if type_json and type_json.get("success") and type_json.get("data", {}).get("url"):
-                    checkout_url = type_json["data"]["url"]
+                if type_json and "data" in type_json:
+                    data_wrapper = type_json.get("data")
+                    if isinstance(data_wrapper, dict) and "url" in data_wrapper:
+                        checkout_url = data_wrapper["url"]
+                    elif isinstance(data_wrapper, str) and "http" in data_wrapper:
+                        checkout_url = data_wrapper
             except Exception:
                 pass
             
-            # 🎯 19-DIGIT ENHANCED DYNAMIC FALLBACK: Matches the true transaction identity structure format
-            real_19_digit_id = "122" + str(int(asyncio.get_event_loop().time() * 1000000))[:16]
-            
-            if checkout_url:
-                clean_url = checkout_url.replace("&amp;", "&")
-                logger.info(f"🔗 Simulating redirection landing handshake context: {clean_url}")
-                # Executing a GET call to activate the order session signature context on Paybitra platform
-                await client.get(clean_url)
-                
-                try:
-                    parsed_url = urlparse(clean_url)
-                    query_params = parse_qs(parsed_url.query)
-                    if query_params.get('order'):
-                        real_19_digit_id = query_params.get('order')[0]
-                except Exception:
-                    pass
+            if not checkout_url:
+                raise Exception("Phantom777 endpoint did not return a valid active checkout session redirect.")
 
-            logger.info(f"🎯 Verified Terminal Target Transaction ID: {real_19_digit_id}")
+            clean_url = checkout_url.replace("&amp;", "&")
+            logger.info(f"🔗 Activating transaction context route: {clean_url}")
+            
+            # Triggering a GET request to activate session logging constraints on Paybitra side
+            checkout_landing_res = await client.get(clean_url)
+            
+            # Extracting the 100% TRUE 19-DIGIT Order ID straight from checkout redirected active page state
+            real_19_digit_id = None
+            try:
+                parsed_url = urlparse(str(checkout_landing_res.url))
+                query_params = parse_qs(parsed_url.query)
+                if query_params.get('order'):
+                    real_19_digit_id = query_params.get('order')[0]
+            except Exception:
+                pass
+            
+            # Strict verification check fallback row matching query context strings
+            if not real_19_digit_id:
+                matches = re.search(r'order=(\d{15,20})', clean_url)
+                if matches:
+                    real_19_digit_id = matches.group(1)
+
+            if not real_19_digit_id:
+                raise Exception("Unable to dynamically extract the true 19-digit bank tracking allocation parameter.")
+
+            logger.info(f"🎯 Verified Live 19-Digit Transaction ID: {real_19_digit_id}")
 
             # PHASE 4: DISPATCH ASSIGN-BANK PACKET WITH EXACT HEADERS MAPPING
             target_paybitra_endpoint = f"https://api.paybitra.com/v1/payIn/assign-bank/{real_19_digit_id}"
@@ -119,7 +151,6 @@ async def fetch_upi_job():
             paybitra_custom_headers = TARGET_HEADERS.copy()
             paybitra_custom_headers["referer"] = "https://paybitra-payment-site-prod-20.vercel.app/"
             
-            # Executing final post hit matching your system's output constraints exactly
             final_gateway_res = await client.post(target_paybitra_endpoint, json=paybitra_payload, headers=paybitra_custom_headers)
             raw_response_text = final_gateway_res.text
             
@@ -136,9 +167,9 @@ async def fetch_upi_job():
             display_log_val = captured_upi_id if captured_upi_id else "RAW_LOGGED"
             upi_logs_database.insert(0, {"timestamp": time_str, "upi": display_log_val, "status": "SUCCESS"})
 
-            # Syncing structural tracking stats to Telegram
+            # Syncing tracking statistics directly to Telegram
             telegram_msg = (
-                f"📡 *PAYBITRA PRECISE SYSTEM UPDATE*\n\n"
+                f"📡 *PAYBITRA DYNAMIC CHAIN UPDATE*\n\n"
                 f"🕒 *Time (IST):* {time_str}\n"
                 f"🎯 *Used 19-Digit ID:* `{real_19_digit_id}`\n"
                 f"⚙️ *Status Code:* `{final_gateway_res.status_code}`\n\n"
@@ -148,9 +179,9 @@ async def fetch_upi_job():
             await send_telegram_alert(telegram_msg)
 
         except Exception as e:
-            logger.error(f"💥 Runtime Exception: {str(e)}")
+            logger.error(f"💥 Runtime Exception Error: {str(e)}")
             upi_logs_database.insert(0, {"timestamp": time_str, "upi": "ERROR", "status": "FAILED"})
-            await send_telegram_alert(f"⚠️ *UPI MONITOR ALERT: PROCESS CRASH*\n\n🕒 *Time (IST):* {time_str}\n🔴 *Error Trace:* `{str(e)}` ")
+            await send_telegram_alert(f"⚠️ *UPI MONITOR CLOUD ALERT: NOT FOUND*\n\n🕒 *Time (IST):* {time_str}\n🔴 *Reason:* `{str(e)}` ")
 
 async def start_autonomous_scheduler():
     """Bypass Sleep Engine: Runs infinitely by executing system self-pings every 8 minutes"""
@@ -198,7 +229,7 @@ async def serve_dashboard_ui_page(request: Request):
     </head>
     <body>
         <div class="container">
-            <h2>🤖 Real-Time Precise Interceptor Dashboard</h2>
+            <h2>🤖 Real-Time Dynamic Chain Dashboard</h2>
             <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Anti-Sleep Core Active (8 Min)</span></p>
             <p>Every response from the bank gateway is being intercepted and streamed raw directly to your Telegram chat channel continuously.</p>
             <div class="log-box" id="logs-area">Loading live streaming logs thread...</div>
