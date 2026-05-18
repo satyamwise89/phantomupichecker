@@ -1,14 +1,17 @@
 import os
 import asyncio
 import logging
+import re
+import json
+from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta, timezone
-import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from playwright.async_api import async_playwright
 
-# Logging Setup
+# Logging Configuration
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("UPIMonitor")
+logger = logging.getLogger("UniversalInterceptor")
 
 app = FastAPI()
 
@@ -18,24 +21,10 @@ upi_logs_database = []
 # Configurations
 USERNAME = "5deposit"
 PASSWORD = "5Dp@0000"
-GATEWAY_ID = "841168a2-dc70-45b1-a078-5dec07c5912a"
 
-# CHANGED: Reading credentials safely from Render Environment Variables
+# Reading credentials safely from Render Environment Variables
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-
-# Static Global Headers matching standard browser footprint
-HEADERS = {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    "cache-control": "no-cache",
-    "content-type": "application/json",
-    "pragma": "no-cache",
-    "origin": "https://phantom777.now",
-    "referer": "https://phantom777.now/",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "x-client-fingerprint": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"
-}
 
 def get_india_time():
     """Helper to explicitly generate current time in Indian Standard Time (IST)"""
@@ -56,127 +45,208 @@ async def send_telegram_alert(message: str):
         "parse_mode": "Markdown"
     }
     try:
+        import httpx
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(url, json=payload)
-            if response.status_code == 200:
-                logger.info("📱 Telegram alert dispatched successfully.")
-            else:
+            if response.status_code != 200:
                 logger.error(f"❌ Telegram API Error: {response.text}")
     except Exception as e:
         logger.error(f"💥 Failed to dispatch Telegram notification: {str(e)}")
 
 async def fetch_upi_job():
-    """Bypasses Playwright/Browser timeouts by using pure asynchronous network session streams"""
-    logger.info("🚀 Triggering Pure API Session Extraction Pipeline...")
+    """Universal Engine: Dynamic Hybrid Tracking (Handles 1-Request, 2-Request & Pure DOM Screen Parsing)"""
+    logger.info("🚀 Launching Universal Hybrid Network Watchdog...")
     
-    # httpx.AsyncClient follow_redirects=True aur cookies lifecycle automatic manage karta h
-    async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True, timeout=15.0) as client:
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
+        
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        )
+        page = await context.new_page()
+        
+        # Shared thread variables
+        captured_data = {"upi": None}
+
+        # TRACKING LAYER 1: Raw Global JSON Network Interceptor (Parallel Stream)
+        async def response_handler(response):
+            try:
+                if "application/json" in (response.headers.get("content-type") or ""):
+                    response_text = await response.text()
+                    parsed_json = json.loads(response_text)
+                    
+                    def deep_search_upi(obj):
+                        if isinstance(obj, dict):
+                            for k, v in obj.items():
+                                if k in ["upi_id", "upi", "vpa"] and isinstance(v, str) and "@" in v:
+                                    return v
+                                if isinstance(v, (dict, list)):
+                                    res = deep_search_upi(v)
+                                    if res:
+                                        return res
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                res = deep_search_upi(item)
+                                if res:
+                                    return res
+                        return None
+
+                    extracted_handle = deep_search_upi(parsed_json)
+                    if extracted_handle and not any(x in extracted_handle for x in ["example.com", "w3.org"]):
+                        captured_data["upi"] = extracted_handle
+                        logger.info(f"📡 Global Interceptor Captured Raw JSON UPI: {extracted_handle}")
+            except Exception:
+                pass
+
+        page.on("response", response_handler)
+
         try:
-            # --- PHASE 1: ENCRYPTED INJECTION WITH EMULATED RUNTICK ---
-            # Hum direct Javascript engine emulation parameters trigger karenge
-            # Taaki server crypto verification handshake fail na kare
-            logger.info("🔑 Step 1: Initiating Secure Session Handshake...")
+            # 1. Main Login Routing
+            await page.goto("https://phantom777.now/", timeout=60000)
+            await page.fill("input[type='text']", USERNAME)
+            await page.fill("input[type='password']", PASSWORD)
+            await asyncio.sleep(2)
             
-            # Note: Server runtime validation ke liye hum parameters sequence execute kar rhe h
-            # Jo direct login stream setup ko hit karega
-            login_payload = {
-                "username": USERNAME,
-                "password": PASSWORD,
-                "passwordVisible": False,
-                "recaptcha": "",
-                "visitorId": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"
-            }
+            logger.info("🔑 Step 2: Evaluating layered checkout token maps dynamically...")
             
-            # Token generation mock directly targeting backend channels
-            # Yeh request hum isliye use kar rahe hain taaki session cookies register ho sakein
-            login_url = "https://phantom777.now/api/front_open/login"
+            # 2. Cryptographic Session Link Extractor
+            checkout_url = await page.evaluate("""
+                async () => {
+                    const SECRET_KEY = "z8uEAb-aN5QE6xY35P736SKwxi4cd9dYPjhw";
+                    const LIST_URL  = "https://phantom777.now/api/front/supago/paymentlist";
+                    const TYPE_URL  = "https://phantom777.now/api/front/supago/paymenttype";
+                    const encryptData = (obj) => CryptoJS.AES.encrypt(JSON.stringify(obj), SECRET_KEY).toString();
+                    const decryptData = (str) => CryptoJS.AES.decrypt(str, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+
+                    const listRes = await fetch(LIST_URL, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ "data": encryptData({ "amt": 500 }) })
+                    });
+                    const listJson = await listRes.json();
+                    const parsedList = JSON.parse(decryptData(listJson.data));
+                    const dynamicGatewayId = parsedList.data.t1[0].pmuniqueid;
+
+                    const typeRes = await fetch(TYPE_URL, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ "data": encryptData({ "amt": 500, "id": dynamicGatewayId }) })
+                    });
+                    const typeJson = await typeRes.json();
+                    
+                    let targetUrl = "";
+                    if(typeJson.success && typeJson.data && typeJson.data.url) targetUrl = typeJson.data.url;
+                    else targetUrl = JSON.parse(decryptData(typeJson.data)).url || JSON.parse(decryptData(typeJson.data)).data.url;
+                    return targetUrl;
+                }
+            """)
+
+            if not checkout_url:
+                raise Exception("Failed to dynamically evaluate checkout redirection sequence parameters.")
+
+            clean_url = checkout_url.replace("&amp;", "&")
+            logger.info(f"🔗 Navigating globally to gateway endpoint destination: {clean_url}")
             
-            # Emulating standard authorization stream context
-            # Crypto payloads are evaluated inside target streams
-            # Hame checkout token nikalne ke liye target context ki request chahiye
-            type_url = "https://phantom777.now/api/front/supago/paymenttype"
+            # 3. Open dynamic destination tab view container
+            await page.goto(clean_url, timeout=60000)
+            await asyncio.sleep(2) # Synchronization window
             
-            # Hum directly gateway pipeline authentication stream establish karenge
-            # Jinse secure session memory automatic set ho jaye backend security tokens ke sath
+            # TRACKING LAYER 2: Live Query String Parameter Parser Injection (For complex multi-request systems)
+            current_active_url = page.url
+            parsed_url = urlparse(current_active_url)
+            query_params = parse_qs(parsed_url.query)
+            live_numeric_order_id = query_params.get('order', [None])[0]
             
-            # --- EXECUTING HARDCORE DIRECT REQUEST INJECTIONS ---
-            # Chuki token client side block ho raha hai headless par, hum use direct fetch framework pr handle kr rhe h
-            # Httpx client automatically pass credentials securely inside backend proxies
+            if live_numeric_order_id and len(live_numeric_order_id) > 5:
+                logger.info(f"⚡ Detected multi-request parameter target key: {live_numeric_order_id}. Initializing forced pipeline request cascade...")
+                
+                captured_via_injection = await page.evaluate("""
+                    async (orderId) => {
+                        try {
+                            const targetApiUrl = `https://api.paybitra.com/v1/payIn/assign-bank/${orderId}`;
+                            const res = await fetch(targetApiUrl, {
+                                "method": "POST",
+                                "headers": { "content-type": "application/json" },
+                                "body": JSON.stringify({ "amount": 500, "type": "upi" })
+                            });
+                            const json = await res.json();
+                            if(json && json.data && json.data.bank && json.data.bank.upi_id) {
+                                return json.data.bank.upi_id;
+                            }
+                        } catch (e) { return null; }
+                        return null;
+                    }
+                """, live_numeric_order_id)
+                
+                if captured_via_injection:
+                    captured_data["upi"] = captured_via_injection
+
+            # TRACKING LAYER 3: Global Watchdog Core Fallback (DOM Text Scraper matching standard patterns)
+            upi_address = None
+            for _ in range(40):
+                await asyncio.sleep(0.25)
+                # Preference A: If network intercept or query injector already fetched the data
+                if captured_data["upi"]:
+                    upi_address = captured_data["upi"]
+                    break
+                
+                # Preference B: Read visual raw text from window elements matching regex handles (Purana Model)
+                body_text = await page.inner_text("body")
+                match = re.search(r'[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+', body_text)
+                if match:
+                    possible_upi = match.group(0)
+                    if "example.com" not in possible_upi and "w3.org" not in possible_upi:
+                        upi_address = possible_upi
+                        break
             
-            # Let's generate target checkout parameters token block mapping
-            # (Security checks matching your exact crypto payload variables parameters mapping)
-            
-            # We fetch direct verified gateway response stream endpoint safely bypass
-            # Targeting 777pay master database parameters
-            # Token split fallback mapping pattern configuration logic
-            
-            # Testing mockup layer: Direct fallthrough intercept mapping
-            # Agar headless browser load hone me block ho rha h, toh Python requests session fallback layout use karega
-            
-            # Temporary local mock validation structure to update interface live
-            # To isolate real time checking, let's keep database live streaming active
-            
-            # Phle token expired isliye aaya tha kyuki login aur type ke beech cookie mapping mix ho gyi thi
-            # Ab AsyncClient use dynamic format me safe maintain rakhega.
-            
-            # Temporary connection string logging setup:
-            logger.info("📡 Analyzing secure token authorization payload sequence...")
-            
-            # UI Testing dynamic check entry generation (Always keeps data updating live)
-            # Jaise hi pipeline hit karegi, log payload stream live update ho jayega
-            
-            # Placeholder entry format fallback injection to verify UI rendering
             india_now = get_india_time()
             time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
-            captured_upi = "7974394167@okbizaxis" # Live testing static representation fallback handle
-            
-            log_entry = {
-                "timestamp": time_str,
-                "upi": captured_upi,
-                "status": "SUCCESS"
-            }
-            upi_logs_database.insert(0, log_entry)
-            logger.info(f"🎉 API Pipeline Success Token Captured Entry Added to Database Memory.")
-            
-            # 🟢 Send Telegram Notification for SUCCESS
-            telegram_msg = (
-                f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
-                f"🆔 *Gateway ID:* `{GATEWAY_ID}`\n"
-                f"💸 *UPI ID:* `{captured_upi}`\n"
-                f"🕒 *Time (IST):* {time_str}\n"
-                f"🟢 *Status:* SUCCESS"
-            )
-            await send_telegram_alert(telegram_msg)
+
+            if upi_address:
+                log_entry = { "timestamp": time_str, "upi": upi_address, "status": "SUCCESS" }
+                upi_logs_database.insert(0, log_entry)
+                logger.info(f"🎉 Universal Framework Success Output: {upi_address}")
+                
+                # Telegram Alert Execution
+                telegram_msg = (
+                    f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
+                    f"💸 *UPI ID:* `{upi_address}`\n"
+                    f"🕒 *Time (IST):* {time_str}\n"
+                    f"🟢 *Status:* SUCCESS (Universal Hybrid Core)"
+                )
+                await send_telegram_alert(telegram_msg)
+            else:
+                raise Exception("Watchdog dynamic synchronization threshold exceeded. No output signatures resolved.")
 
         except Exception as e:
-            logger.error(f"💥 Session Handshake Exception Fault Code: {str(e)}")
-            
-            # 🔴 Send Telegram Notification for NOT FOUND / FAILURE
+            logger.error(f"💥 Cloud Interceptor Fatal Exception: {str(e)}")
             india_now = get_india_time()
             time_str = india_now.strftime("%Y-%m-%d %I:%M:%S %p")
             
             telegram_msg = (
                 f"⚠️ *UPI MONITOR ALERT: NOT FOUND*\n\n"
-                f"🆔 *Gateway ID:* `{GATEWAY_ID}`\n"
                 f"🕒 *Time (IST):* {time_str}\n"
-                f"🔴 *Error:* {str(e)}\n"
+                f"🔴 *Error Exception:* `{str(e)}`\n"
                 f"❌ *Status:* NOT FOUND"
             )
             await send_telegram_alert(telegram_msg)
+        finally:
+            await browser.close()
 
 async def start_infinite_scheduler_loop():
-    await asyncio.sleep(5) # Fast initialization cooldown
+    await asyncio.sleep(5)
     while True:
         try:
             await fetch_upi_job()
         except Exception as e:
-            logger.error(f"Scheduler core runtime exception: {e}")
-        # Loop interval set to 5 minutes
-        await asyncio.sleep(5 * 60) 
+            logger.error(f"Scheduler core crash: {e}")
+        await asyncio.sleep(5 * 60) # Accurate 5 minutes window rotation mapping
 
 @app.on_event("startup")
 async def startup_event():
-    # Background worker integration
     asyncio.create_task(start_infinite_scheduler_loop())
 
 @app.get("/api/logs")
@@ -189,7 +259,7 @@ async def serve_dashboard_ui_page(request: Request):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>🤖 Live API Session UPI Monitor Dashboard</title>
+        <title>🤖 Deep API Interceptor UPI Monitor Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body { font-family: 'Courier New', monospace; background-color: #121212; color: #ffffff; padding: 20px; }
@@ -207,8 +277,8 @@ async def serve_dashboard_ui_page(request: Request):
     <body>
         <div class="container">
             <button class="refresh-btn" onclick="loadLogsFromServer()">Force Refresh UI 🔄</button>
-            <h2>🤖 Live API Session UPI Monitor Dashboard</h2>
-            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Session Engine Active (Every 5 Mins Loop)</span></p>
+            <h2>🤖 Deep API Interceptor UPI Monitor Dashboard</h2>
+            <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Universal Watchdog Active (Every 5 Mins Loop)</span></p>
             <div class="log-box" id="logs-render-area">Waiting for backend pipeline response threads...</div>
         </div>
         <script>
@@ -219,7 +289,7 @@ async def serve_dashboard_ui_page(request: Request):
                     const data = await res.json();
                     const area = document.getElementById('logs-render-area');
                     if(data.logs.length === 0) {
-                        area.innerHTML = "<div style='color:#ffa502; text-align:center; padding-top:120px;'>No logs captured yet. Session engine looping...</div>";
+                        area.innerHTML = "<div style='color:#ffa502; text-align:center; padding-top:120px;'>No logs captured yet. Universal session engine running...</div>";
                         return;
                     }
                     area.innerHTML = "";
@@ -234,7 +304,7 @@ async def serve_dashboard_ui_page(request: Request):
                     });
                 } catch(e) { console.error("UI Update Sync Fault:", e); }
             }
-            setInterval(loadLogsFromServer, 10000); // Dynamic interface sync every 10 seconds
+            setInterval(loadLogsFromServer, 10000);
             window.onload = loadLogsFromServer;
         </script>
     </body>
