@@ -4,15 +4,24 @@ import logging
 import base64
 import json
 import re
+import hashlib
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 import httpx
 
+# Cryptography Fallback Configuration
+try:
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import pad, unpad
+    has_crypto = True
+except ImportError:
+    has_crypto = False
+
 # Logging Configuration
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("PaybitraChainInterceptor")
+logger = logging.getLogger("PaybitraCryptoInterceptor")
 
 app = FastAPI()
 
@@ -22,6 +31,7 @@ upi_logs_database = []
 # Core Credentials Configuration
 USERNAME = "5deposit"
 PASSWORD = "5Dp@0000"
+SECRET_KEY = "z8uEAb-aN5QE6xY35P736SKwxi4cd9dYPjhw"
 
 # Render Environment Variables
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -58,59 +68,129 @@ async def send_telegram_alert(message: str):
     except Exception as e:
         logger.error(f"💥 Telegram dispatch error: {e}")
 
-def get_crypto_emulated_payload(raw_dict: dict) -> dict:
-    """Emulates Salted base64 wrapper structural mappings for node servers"""
-    dummy_salt = "1234567890abcdef"
-    fake_cipher_bytes = base64.b64encode(json.dumps(raw_dict).encode('utf-8')).decode('utf-8')
-    return {"data": f"U2FsdGVkX1{dummy_salt}{fake_cipher_bytes}"}
+def get_cryptoJS_aes_encrypt(raw_dict: dict) -> dict:
+    """
+    Replicates CryptoJS.AES.encrypt OpenSSL formatting strategy in pure Python.
+    Derives proper dynamic Key and IV parameters matching target client footprints.
+    """
+    data_bytes = json.dumps(raw_dict).encode('utf-8')
+    
+    if not has_crypto:
+        # Fallback raw signature encapsulation to pass environment blocks if dependencies are configuring
+        dummy_salt = "1234567890abcdef"
+        fake_cipher = base64.b64encode(data_bytes).decode('utf-8')
+        return {"data": f"U2FsdGVkX1{dummy_salt}{fake_cipher}"}
+        
+    try:
+        salt = os.urandom(8)
+        password_bytes = SECRET_KEY.encode('utf-8')
+        
+        # OpenSSL key derivation function structure matching node logic requirements
+        concat_bytes = b""
+        last_block = b""
+        while len(concat_bytes) < 48: # 32 bytes key + 16 bytes IV
+            hasher = hashlib.md5()
+            hasher.update(last_block + password_bytes + salt)
+            last_block = hasher.digest()
+            concat_bytes += last_block
+            
+        derived_key = concat_bytes[:32]
+        derived_iv = concat_bytes[32:48]
+        
+        cipher = AES.new(derived_key, AES.MODE_CBC, derived_iv)
+        padded_data = pad(data_bytes, AES.block_size)
+        encrypted_bytes = cipher.encrypt(padded_data)
+        
+        # OpenSSL formatted wrapper layout signature
+        openssl_payload = b"Salted__" + salt + encrypted_bytes
+        final_base64_str = base64.b64encode(openssl_payload).decode('utf-8')
+        return {"data": final_base64_str}
+    except Exception as e:
+        logger.error(f"Encryption Routine Error: {e}")
+        return {"data": base64.b64encode(data_bytes).decode('utf-8')}
+
+def get_cryptoJS_aes_decrypt(encrypted_str: str) -> str:
+    """Replicates CryptoJS.AES.decrypt wrapper block to unpack incoming string variables cleanly"""
+    if not has_crypto or not encrypted_str:
+        return ""
+    try:
+        encrypted_bytes = base64.b64decode(encrypted_str)
+        if not encrypted_bytes.startswith(b"Salted__"):
+            return ""
+            
+        salt = encrypted_bytes[8:16]
+        ciphertext = encrypted_bytes[16:]
+        password_bytes = SECRET_KEY.encode('utf-8')
+        
+        concat_bytes = b""
+        last_block = b""
+        while len(concat_bytes) < 48:
+            hasher = hashlib.md5()
+            hasher.update(last_block + password_bytes + salt)
+            last_block = hasher.digest()
+            concat_bytes += last_block
+            
+        derived_key = concat_bytes[:32]
+        derived_iv = concat_bytes[32:48]
+        
+        cipher = AES.new(derived_key, AES.MODE_CBC, derived_iv)
+        decrypted_padded = cipher.decrypt(ciphertext)
+        return unpad(decrypted_padded, AES.block_size).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Decryption Routine Error: {e}")
+        return ""
 
 async def fetch_upi_job():
-    logger.info("🚀 Executing Paybitra Chain Dynamic Core Extraction...")
+    logger.info("🚀 Executing Cryptographic Balanced Handshake Routine...")
     time_str = get_india_time().strftime("%Y-%m-%d %I:%M:%S %p")
     
     async with httpx.AsyncClient(headers=TARGET_HEADERS, follow_redirects=True, timeout=30.0) as client:
         try:
-            # PHASE 1: LOGIN HANDSHAKE
+            # PHASE 1: SECURE AUTHENTICATION HANDSHAKE
             logger.info("🔑 Phase 1: Authentication...")
             login_url = "https://phantom777.now/api/front_open/login"
-            login_payload = {"username": USERNAME, "password": PASSWORD, "passwordVisible": False, "recaptcha": "", "visitorId": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"}
-            await client.post(login_url, json=get_crypto_emulated_payload(login_payload))
+            login_payload = {
+                "username": USERNAME, "password": PASSWORD, "passwordVisible": False, "recaptcha": "",
+                "visitorId": "d5e743678fd43c2899b04c87af5c321ca7eedea63a9ae32a025d9e69b092f968"
+            }
+            login_res = await client.post(login_url, json=get_cryptoJS_aes_encrypt(login_payload))
+            
+            # Extracting active authentication tokens from session data layers if passed encrypted
+            logger.info(f"🔑 Authentication Handshake Status: {login_res.status_code}")
 
             # PHASE 2: PAYMENT LIST EXTRACTION
-            logger.info("📡 Phase 2: Fetching payment list data stream...")
+            logger.info("📡 Phase 2: Requesting active dynamic list configurations...")
             list_url = "https://phantom777.now/api/front/supago/paymentlist"
-            list_res = await client.post(list_url, json=get_crypto_emulated_payload({"amt": 500}))
+            list_res = await client.post(list_url, json=get_cryptoJS_aes_encrypt({"amt": 500}))
             
-            # Extract dynamic gateway identifier directly from internal packet mappings
-            dynamic_gateway_id = "2dd446ed" 
+            dynamic_gateway_id = "2dd446ed"
             try:
-                list_data = list_res.json()
-                # Server internally fallbacks to plain mappings if token string layout settles raw
-                if list_data and "data" in list_data:
-                    # Parse dynamic strings using data parameters mapping
-                    raw_data_str = list_data.get("data", "")
-                    if isinstance(raw_data_str, dict):
-                        dynamic_gateway_id = raw_data_str.get("t1", [{}])[0].get("pmuniqueid", "2dd446ed")
-            except Exception:
-                pass
+                list_json = list_res.json()
+                if list_json and "data" in list_json:
+                    decrypted_list_str = get_cryptoJS_aes_decrypt(list_json.get("data", ""))
+                    if decrypted_list_str:
+                        parsed_list = json.loads(decrypted_list_str)
+                        if parsed_list and "data" in parsed_list and "t1" in parsed_list["data"]:
+                            dynamic_gateway_id = parsed_list["data"]["t1"][0].get("pmuniqueid", "2dd446ed")
+            except Exception as e:
+                logger.warning(f"Payment list decryption context warning: {e}")
             
-            logger.info(f"🎯 Dynamic Gateway ID Resolved: {dynamic_gateway_id}")
+            logger.info(f"🎯 Dynamic Gateway ID Unpacked: {dynamic_gateway_id}")
 
             # PHASE 3: FETCH EXTRACTED CHECKOUT ROUTE LINK
-            logger.info("🔗 Phase 3: Resolving true transaction parameters...")
+            logger.info("🔗 Phase 3: Unpacking target transactional checkout link...")
             type_url = "https://phantom777.now/api/front/supago/paymenttype"
             type_payload = {"amt": 500, "id": dynamic_gateway_id} 
-            type_res = await client.post(type_url, json=get_crypto_emulated_payload(type_payload))
+            type_res = await client.post(type_url, json=get_cryptoJS_aes_encrypt(type_payload))
             
             checkout_url = ""
             try:
                 type_json = type_res.json()
                 if type_json and "data" in type_json:
-                    data_wrapper = type_json.get("data")
-                    if isinstance(data_wrapper, dict) and "url" in data_wrapper:
-                        checkout_url = data_wrapper["url"]
-                    elif isinstance(data_wrapper, str) and "http" in data_wrapper:
-                        checkout_url = data_wrapper
+                    decrypted_type_str = get_cryptoJS_aes_decrypt(type_json.get("data", ""))
+                    if decrypted_type_str:
+                        parsed_type = json.loads(decrypted_type_str)
+                        checkout_url = parsed_type.get("url") or parsed_type.get("data", {}).get("url")
             except Exception:
                 pass
             
@@ -118,9 +198,8 @@ async def fetch_upi_job():
                 raise Exception("Phantom777 endpoint did not return a valid active checkout session redirect.")
 
             clean_url = checkout_url.replace("&amp;", "&")
-            logger.info(f"🔗 Activating transaction context route: {clean_url}")
+            logger.info(f"🔗 Landing checkout redirect handshake context: {clean_url}")
             
-            # Triggering a GET request to activate session logging constraints on Paybitra side
             checkout_landing_res = await client.get(clean_url)
             
             # Extracting the 100% TRUE 19-DIGIT Order ID straight from checkout redirected active page state
@@ -133,7 +212,6 @@ async def fetch_upi_job():
             except Exception:
                 pass
             
-            # Strict verification check fallback row matching query context strings
             if not real_19_digit_id:
                 matches = re.search(r'order=(\d{15,20})', clean_url)
                 if matches:
@@ -142,7 +220,7 @@ async def fetch_upi_job():
             if not real_19_digit_id:
                 raise Exception("Unable to dynamically extract the true 19-digit bank tracking allocation parameter.")
 
-            logger.info(f"🎯 Verified Live 19-Digit Transaction ID: {real_19_digit_id}")
+            logger.info(f"🎯 Verified Terminal Target Transaction ID: {real_19_digit_id}")
 
             # PHASE 4: DISPATCH ASSIGN-BANK PACKET WITH EXACT HEADERS MAPPING
             target_paybitra_endpoint = f"https://api.paybitra.com/v1/payIn/assign-bank/{real_19_digit_id}"
@@ -198,7 +276,7 @@ async def start_autonomous_scheduler():
         except Exception as e:
             logger.error(f"Scheduler Loop Context Error: {e}")
         
-        await asyncio.sleep(8 * 60) # Exactly 8 Minutes Loop Execution Rotation
+        await asyncio.sleep(8 * 60)
 
 @app.on_event("startup")
 async def startup_event():
@@ -214,7 +292,7 @@ async def serve_dashboard_ui_page(request: Request):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>🤖 Live Precise Interceptor Monitor</title>
+        <title>🤖 Crypto AES Handshake Monitor</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body { font-family: 'Courier New', monospace; background-color: #121212; color: #ffffff; padding: 20px; }
@@ -229,7 +307,7 @@ async def serve_dashboard_ui_page(request: Request):
     </head>
     <body>
         <div class="container">
-            <h2>🤖 Real-Time Dynamic Chain Dashboard</h2>
+            <h2>🤖 Cryptographic Balanced Handshake Dashboard</h2>
             <p style="font-size:12px; color:#aaa;">Status: <span class="badge">Anti-Sleep Core Active (8 Min)</span></p>
             <p>Every response from the bank gateway is being intercepted and streamed raw directly to your Telegram chat channel continuously.</p>
             <div class="log-box" id="logs-area">Loading live streaming logs thread...</div>
