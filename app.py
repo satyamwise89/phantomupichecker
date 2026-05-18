@@ -54,24 +54,32 @@ async def send_telegram_alert(message: str):
         logger.error(f"💥 Failed to dispatch Telegram notification: {str(e)}")
 
 async def fetch_upi_job():
-    """Universal Engine: Dynamic Hybrid Tracking (Handles 1-Request, 2-Request & Pure DOM Screen Parsing)"""
+    """Universal Engine: Dynamic Hybrid Tracking with optimized DOM navigation to prevent timeouts"""
     logger.info("🚀 Launching Universal Hybrid Network Watchdog...")
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+            args=[
+                "--no-sandbox", 
+                "--disable-setuid-sandbox", 
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled" # Soft bypass for headless checks
+            ]
         )
         
+        # Setting a standard viewport and locale to look like a normal browser
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 720},
+            locale="en-US"
         )
         page = await context.new_page()
         
         # Shared thread variables
         captured_data = {"upi": None}
 
-        # TRACKING LAYER 1: Raw Global JSON Network Interceptor (Parallel Stream)
+        # TRACKING LAYER 1: Raw Global JSON Network Interceptor
         async def response_handler(response):
             try:
                 if "application/json" in (response.headers.get("content-type") or ""):
@@ -104,8 +112,12 @@ async def fetch_upi_job():
         page.on("response", response_handler)
 
         try:
-            # 1. Main Login Routing
-            await page.goto("https://phantom777.now/", timeout=60000)
+            # FIXED: Added domcontentloaded cushion to prevent 30s timeout on heavy images/scripts
+            logger.info("📡 Navigating to Phantom777 Portal...")
+            await page.goto("https://phantom777.now/", timeout=45000, wait_until="domcontentloaded")
+            
+            # FIXED: Wait explicitly for inputs to render to avoid element filling crashes
+            await page.wait_for_selector("input[type='text']", timeout=15000)
             await page.fill("input[type='text']", USERNAME)
             await page.fill("input[type='password']", PASSWORD)
             await asyncio.sleep(2)
@@ -151,10 +163,10 @@ async def fetch_upi_job():
             logger.info(f"🔗 Navigating globally to gateway endpoint destination: {clean_url}")
             
             # 3. Open dynamic destination tab view container
-            await page.goto(clean_url, timeout=60000)
-            await asyncio.sleep(2) # Synchronization window
+            await page.goto(clean_url, timeout=45000, wait_until="domcontentloaded")
+            await asyncio.sleep(3) # Synchronization window
             
-            # TRACKING LAYER 2: Live Query String Parameter Parser Injection (For complex multi-request systems)
+            # TRACKING LAYER 2: Live Query String Parameter Parser Injection
             current_active_url = page.url
             parsed_url = urlparse(current_active_url)
             query_params = parse_qs(parsed_url.query)
@@ -184,16 +196,14 @@ async def fetch_upi_job():
                 if captured_via_injection:
                     captured_data["upi"] = captured_via_injection
 
-            # TRACKING LAYER 3: Global Watchdog Core Fallback (DOM Text Scraper matching standard patterns)
+            # TRACKING LAYER 3: Global Watchdog Core Fallback
             upi_address = None
             for _ in range(40):
                 await asyncio.sleep(0.25)
-                # Preference A: If network intercept or query injector already fetched the data
                 if captured_data["upi"]:
                     upi_address = captured_data["upi"]
                     break
                 
-                # Preference B: Read visual raw text from window elements matching regex handles (Purana Model)
                 body_text = await page.inner_text("body")
                 match = re.search(r'[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+', body_text)
                 if match:
@@ -210,7 +220,6 @@ async def fetch_upi_job():
                 upi_logs_database.insert(0, log_entry)
                 logger.info(f"🎉 Universal Framework Success Output: {upi_address}")
                 
-                # Telegram Alert Execution
                 telegram_msg = (
                     f"🎯 *UPI CAPTURED SUCCESSFULLY*\n\n"
                     f"💸 *UPI ID:* `{upi_address}`\n"
@@ -243,7 +252,7 @@ async def start_infinite_scheduler_loop():
             await fetch_upi_job()
         except Exception as e:
             logger.error(f"Scheduler core crash: {e}")
-        await asyncio.sleep(5 * 60) # Accurate 5 minutes window rotation mapping
+        await asyncio.sleep(5 * 60)
 
 @app.on_event("startup")
 async def startup_event():
