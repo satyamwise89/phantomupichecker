@@ -1,18 +1,37 @@
-# Playwright ka official image jisme pehle se Chromium aur saari dependencies loaded hain
-FROM mcr.microsoft.com/playwright/python:v1.42.0-jammy
+# 🟢 Python standard slim image build context uthana
+FROM python:3.11-slim
 
-# Work directory set karein
+# Set environment system variables to optimize logs
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
+
+# Build space context define karna
 WORKDIR /app
 
-# Requirements file copy karein aur install karein
+# System dependencies install karna jo chromium headless bypass pipelines ke liye zaroori hain
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    ca-certificates \
+    curl \
+    && rm -rf /lib/apt/lists/*
+
+# Copy python deployment files
 COPY requirements.txt .
+
+# Install target requirements packages mapping python libraries
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Baaki ka poora code copy karein
+# 🔥 CRITICAL STEP FOR DOCKER: Install Playwright system core and download isolated Chromium binaries
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
+# Copy full application tree back to virtual disk node space
 COPY . .
 
-# Render ke port par app ko run karne ke liye environment handle karein
+# Expose backend port mapping context matching Render default binding setup
 EXPOSE 10000
 
-# App ko start karne ka master command
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "10000"]
+# Fire production uvicorn binary framework server mapping FastAPI application instance 
+CMD ["uvicorn", "app.py:app", "--host", "0.0.0.0", "--port", "10000"]
