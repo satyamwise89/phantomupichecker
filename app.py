@@ -1,9 +1,8 @@
 import os
 import asyncio
 import logging
-import re
-import json
 import base64
+import json
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -73,7 +72,8 @@ async def fetch_upi_job():
             
             # PHASE 3: FETCH UPI
             simulated_live_id = "126" + str(int(asyncio.get_event_loop().time() * 1000))[:16]
-            target_paybitra_endpoint = f"https://api.paybitra.com/v1/payIn/assign-bank/${simulated_live_id}"
+            # FIXED: Removed the accidental '$' javascript leftover symbol from endpoint URL string
+            target_paybitra_endpoint = f"https://api.paybitra.com/v1/payIn/assign-bank/{simulated_live_id}"
             
             paybitra_payload = {"amount": 500, "type": "upi"}
             paybitra_headers = {"accept": "application/json, text/plain, */*", "content-type": "application/json", "referer": "https://paybitra-payment-site-prod-20.vercel.app/"}
@@ -111,7 +111,6 @@ async def start_infinite_scheduler_loop():
             logger.error(f"Loop Crash: {e}")
         await asyncio.sleep(8 * 60) # Exact 8 Minutes Interval
 
-# 🔥 NEW WEBHOOK ENDPOINT: Telegram bot direct yahan automatic request bhejega
 @app.post("/telegram-webhook")
 async def telegram_webhook_handler(request: Request):
     global IS_MONITOR_ACTIVE, CURRENT_TASK
@@ -148,7 +147,6 @@ async def telegram_webhook_handler(request: Request):
 
 @app.on_event("startup")
 async def startup_event():
-    # Render khud `RENDER_EXTERNAL_URL` variable provide karta hai env mein
     if TELEGRAM_BOT_TOKEN and RENDER_EXTERNAL_URL:
         webhook_url = f"{RENDER_EXTERNAL_URL}/telegram-webhook"
         setup_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}"
@@ -177,6 +175,10 @@ async def serve_dashboard_ui_page(request: Request):
             .container {{ max-width: 800px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #34495e; }}
             h2 {{ border-bottom: 2px solid #333; padding-bottom: 8px; color: #00ffff; }}
             .badge {{ background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 20px; font-size: 11px; }}
+            .log-box {{ background: #000; padding: 15px; height: 250px; overflow-y: auto; border-radius: 5px; margin-top: 15px; font-size: 13px; }}
+            .log-entry {{ padding: 6px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }}
+            .timestamp {{ color: #ff9f43; }}
+            .upi-value {{ color: #1dd1a1; font-weight: bold; }}
         </style>
     </head>
     <body>
@@ -184,7 +186,27 @@ async def serve_dashboard_ui_page(request: Request):
             <h2>🤖 Webhook Optimized Cloud Dashboard</h2>
             <p style="font-size:12px; color:#aaa;">Engine Status: <span class="badge">{status_text}</span></p>
             <p>Bot will automatically trigger this server whenever you press /start or /stop in Telegram!</p>
+            <div class="log-box" id="logs-area">Loading live streaming logs thread...</div>
         </div>
+        <script>
+            async function refreshLogs() {{
+                try {{
+                    let res = await fetch('/api/logs');
+                    let data = await res.json();
+                    let area = document.getElementById('logs-area');
+                    if(data.logs.length === 0) {{
+                        area.innerHTML = "<div style='color:#aaa; text-align:center; padding-top:100px;'>No logs captured yet. Press /start in Telegram.</div>";
+                        return;
+                    }}
+                    area.innerHTML = "";
+                    data.logs.forEach(log => {{
+                        area.innerHTML += `<div class="log-entry"><span class="timestamp">[${{log.timestamp}}]</span><span class="upi-value">${{log.upi}}</span></div>`;
+                    }});
+                } catch(e) {{}}
+            }}
+            setInterval(refreshLogs, 5000);
+            window.onload = refreshLogs;
+        </script>
     </body>
     </html>
     """
