@@ -54,25 +54,29 @@ async def send_telegram_alert(message: str):
         logger.error(f"💥 Failed to dispatch Telegram notification: {str(e)}")
 
 async def fetch_upi_job():
-    """Universal Cloud Engine mirroring Tampermonkey v10.6 query string dynamic interception model"""
+    """Universal Cloud Engine with hard multi-layer bypass arguments to force entry on blocked servers"""
     logger.info("🚀 Launching Universal Hybrid Network Watchdog...")
     
     async with async_playwright() as p:
+        # HARD CORE BOT BYPASS ARGUMENTS FOR CHROMIUM
         browser = await p.chromium.launch(
             headless=True,
             args=[
                 "--no-sandbox", 
                 "--disable-setuid-sandbox", 
                 "--disable-dev-shm-usage",
+                "--disable-web-security",
+                "--allow-running-insecure-content",
                 "--disable-blink-features=AutomationControlled"
             ]
         )
         
         # Build standard residential browser footprint parameters
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 720},
-            locale="en-US"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            viewport={"width": 1440, "height": 900},
+            locale="en-US",
+            timezone_id="Asia/Kolkata"
         )
         page = await context.new_page()
         
@@ -112,14 +116,25 @@ async def fetch_upi_job():
         page.on("response", response_handler)
 
         try:
-            # 1. Open Portal with extended navigation limits to dodge cold start network lag
+            # 1. Open Portal with strict layout fallback controls
             logger.info("📡 Navigating to Portal...")
-            await page.goto("https://phantom777.now/", timeout=60000, wait_until="domcontentloaded")
             
-            await page.wait_for_selector("input[type='text']", timeout=30000)
-            await page.fill("input[type='text']", USERNAME)
-            await page.fill("input[type='password']", PASSWORD)
-            await asyncio.sleep(2)
+            # CRITICAL FIX: Changed wait_until to 'commit' to prevent hung network timeouts on proxy nodes
+            await page.goto("https://phantom777.now/", timeout=60000, wait_until="commit")
+            await asyncio.sleep(5) # Direct execution cooling cushion for scripts to settle down
+            
+            # Explicit input filling using robust selector tracking
+            await page.wait_for_selector("input", timeout=30000)
+            inputs = await page.query_selector_all("input")
+            if len(inputs) >= 2:
+                await inputs[0].fill(USERNAME)
+                await inputs[1].fill(PASSWORD)
+            else:
+                # Target named parameters fallback row
+                await page.fill("input[type='text']", USERNAME)
+                await page.fill("input[type='password']", PASSWORD)
+                
+            await asyncio.sleep(3)
             
             logger.info("🔑 Step 2: Running inline cryptographic evaluator mapping...")
             
@@ -162,8 +177,8 @@ async def fetch_upi_job():
             logger.info(f"🔗 Target dynamic URL mapping unpacked successfully: {clean_url}")
             
             # 3. Navigate straight to the gateway landing tab page context
-            await page.goto(clean_url, timeout=60000, wait_until="domcontentloaded")
-            await asyncio.sleep(3) # Safe buffer initialization window
+            await page.goto(clean_url, timeout=60000, wait_until="commit")
+            await asyncio.sleep(5) # Safe buffer initialization window for gateway DOM scripts
             
             # --- MATCHING TAMPERMONKEY V10.6 DYNAMIC SEARCH QUERY PARAMETER INTERCEPTOR ---
             current_active_url = page.url
@@ -198,7 +213,7 @@ async def fetch_upi_job():
                 if captured_via_injection:
                     captured_data["upi"] = captured_via_injection
 
-            # 4. Watchdog Fallback Verification Loop (DOM Text Scraper vs API Injection match checks)
+            # 4. Watchdog Fallback Verification Loop
             upi_address = None
             for _ in range(40):
                 await asyncio.sleep(0.25)
@@ -254,7 +269,7 @@ async def start_infinite_scheduler_loop():
             await fetch_upi_job()
         except Exception as e:
             logger.error(f"Scheduler core context crash error: {e}")
-        await asyncio.sleep(5 * 60) # Standard 5 minute tracking rotation mapping
+        await asyncio.sleep(5 * 60)
 
 @app.on_event("startup")
 async def startup_event():
